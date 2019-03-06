@@ -1,0 +1,2 @@
+/home/travis/build/vertx-howtos/aws-native-image-lambda-howto/aws-lambda-vertx-runtime/src/test/java/lambda/EchoLambdaTest.java
+/home/travis/build/vertx-howtos/aws-native-image-lambda-howto/aws-lambda-vertx-runtime/src/test/java/lambda/QOTDLambdaTest.java

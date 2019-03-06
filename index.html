@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Deploying a Vert.x Native Image function with AWS Lambda | Eclipse Vert.x how-to</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr"
+    crossorigin="anonymous">
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg sticky-top navbar-dark bg-purple mb-4 shadow-sm">
+    <a class="navbar-brand" href="#">
+      <img src="assets/images/vertx-square.svg" alt="Vert.x" width="40" height="40">
+      &nbsp; Eclipse Vert.x how-to
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav"
+      aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="https://vertx.io/docs/"><i class="fas fa-lg fa-drafting-compass"></i> Vert.x docs</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://github.com/vertx-howtos/aws-native-image-lambda-howto"><i class="fab fa-lg fa-github"></i> Source
+            code</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://github.com/vertx-howtos/aws-native-image-lambda-howto/edit/master/README.adoc"><i class="far fa-lg fa-edit"></i>
+            Edit this</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        <h1>Deploying a Vert.x Native Image function with AWS Lambda</h1>
+        <div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p>This how-to shows you how to deploy a Vert.x-based native image <em>function</em> served by <a href="https://aws.amazon.com/lambda/">AWS Lambda</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="what-you-will-build">What you will build</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>You will write a function that accepts returns a Quote Of The Day (similar to the UNIX tool).</p>
+</li>
+<li>
+<p>This function will be written in Java.</p>
+</li>
+<li>
+<p>The code will be compiled to native with the help of <a href="http://www.graalvm.org/">GraalVM</a>.</p>
+</li>
+<li>
+<p>A function will be created with <a href="https://aws.amazon.com/cli/">AWS Command Line Interface</a>.</p>
+</li>
+<li>
+<p>This function will be deployed with <a href="https://aws.amazon.com/lambda/">AWS Lambda</a>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="what-you-need">What you need</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>A text editor or IDE</p>
+</li>
+<li>
+<p>Java 8 higher</p>
+</li>
+<li>
+<p>Maven</p>
+</li>
+<li>
+<p>GraalVM (&gt;= 1.0.0-rc12)</p>
+</li>
+<li>
+<p>A AWS account to deploy your function.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="what-is-a-aws-lambda-function-and-why-is-vert-x-a-good-match">What is a AWS Lambda function and why is Vert.x a good match?</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TODO!</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="create-a-project">Create a project</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Here is the content of the <code>pom.xml</code> file that you should be using:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-xml" data-lang="xml"><span id="L1" class="line"><span style="color: #999999;font-weight: bold">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span></span>
+<span id="L2" class="line"><span style="color: #000080">&lt;project</span> <span style="color: #008080">xmlns=</span><span style="color: #d14">"http://maven.apache.org/POM/4.0.0"</span></span>
+<span id="L3" class="line">         <span style="color: #008080">xmlns:xsi=</span><span style="color: #d14">"http://www.w3.org/2001/XMLSchema-instance"</span> <span style="color: #008080">xsi:schemaLocation=</span><span style="color: #d14">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span style="color: #000080">&gt;</span></span>
+<span id="L4" class="line"></span>
+<span id="L5" class="line">  <span style="color: #000080">&lt;modelVersion&gt;</span>4.0.0<span style="color: #000080">&lt;/modelVersion&gt;</span></span>
+<span id="L6" class="line"></span>
+<span id="L7" class="line">  <span style="color: #000080">&lt;groupId&gt;</span>com.example<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L8" class="line">  <span style="color: #000080">&lt;artifactId&gt;</span>myapp<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L9" class="line">  <span style="color: #000080">&lt;version&gt;</span>0.0.1-SNAPSHOT<span style="color: #000080">&lt;/version&gt;</span></span>
+<span id="L10" class="line"></span>
+<span id="L11" class="line">  <span style="color: #000080">&lt;name&gt;</span>aws-lambda-vertx-native<span style="color: #000080">&lt;/name&gt;</span></span>
+<span id="L12" class="line"></span>
+<span id="L13" class="line">  <span style="color: #000080">&lt;properties&gt;</span></span>
+<span id="L14" class="line">    <span style="color: #000080">&lt;vertx.verticle&gt;</span>vertx.lambda.LambdaBootstrap<span style="color: #000080">&lt;/vertx.verticle&gt;</span></span>
+<span id="L15" class="line"></span>
+<span id="L16" class="line">    <span style="color: #000080">&lt;project.build.sourceEncoding&gt;</span>UTF-8<span style="color: #000080">&lt;/project.build.sourceEncoding&gt;</span></span>
+<span id="L17" class="line">    <span style="color: #000080">&lt;maven.compiler.target&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.target&gt;</span></span>
+<span id="L18" class="line">    <span style="color: #000080">&lt;maven.compiler.source&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.source&gt;</span></span>
+<span id="L19" class="line">    <span style="color: #000080">&lt;maven.compiler.testSource&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.testSource&gt;</span></span>
+<span id="L20" class="line">    <span style="color: #000080">&lt;maven.compiler.testTarget&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.testTarget&gt;</span></span>
+<span id="L21" class="line">    <span style="color: #000080">&lt;graal.version&gt;</span>1.0.0-rc12<span style="color: #000080">&lt;/graal.version&gt;</span></span>
+<span id="L22" class="line">  <span style="color: #000080">&lt;/properties&gt;</span></span>
+<span id="L23" class="line"></span>
+<span id="L24" class="line">  <span style="color: #000080">&lt;dependencyManagement&gt;</span></span>
+<span id="L25" class="line">    <span style="color: #000080">&lt;dependencies&gt;</span></span>
+<span id="L26" class="line">      <span style="color: #000080">&lt;dependency&gt;</span></span>
+<span id="L27" class="line">        <span style="color: #000080">&lt;groupId&gt;</span>io.vertx<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L28" class="line">        <span style="color: #000080">&lt;artifactId&gt;</span>vertx-stack-depchain<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L29" class="line">        <span style="color: #000080">&lt;version&gt;</span>3.6.3<span style="color: #000080">&lt;/version&gt;</span></span>
+<span id="L30" class="line">        <span style="color: #000080">&lt;type&gt;</span>pom<span style="color: #000080">&lt;/type&gt;</span></span>
+<span id="L31" class="line">        <span style="color: #000080">&lt;scope&gt;</span>import<span style="color: #000080">&lt;/scope&gt;</span></span>
+<span id="L32" class="line">      <span style="color: #000080">&lt;/dependency&gt;</span></span>
+<span id="L33" class="line">    <span style="color: #000080">&lt;/dependencies&gt;</span></span>
+<span id="L34" class="line">  <span style="color: #000080">&lt;/dependencyManagement&gt;</span></span>
+<span id="L35" class="line"></span>
+<span id="L36" class="line">  <span style="color: #000080">&lt;dependencies&gt;</span></span>
+<span id="L37" class="line">    <span style="color: #000080">&lt;dependency&gt;</span>   <b class="conum">(1)</b></span>
+<span id="L38" class="line">      <span style="color: #000080">&lt;groupId&gt;</span>com.oracle.substratevm<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L39" class="line">      <span style="color: #000080">&lt;artifactId&gt;</span>svm-driver<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L40" class="line">      <span style="color: #000080">&lt;version&gt;</span>${graal.version}<span style="color: #000080">&lt;/version&gt;</span></span>
+<span id="L41" class="line">      <span style="color: #000080">&lt;scope&gt;</span>provided<span style="color: #000080">&lt;/scope&gt;</span></span>
+<span id="L42" class="line">    <span style="color: #000080">&lt;/dependency&gt;</span></span>
+<span id="L43" class="line">    <span style="color: #000080">&lt;dependency&gt;</span></span>
+<span id="L44" class="line">      <span style="color: #000080">&lt;groupId&gt;</span>io.vertx<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L45" class="line">      <span style="color: #000080">&lt;artifactId&gt;</span>vertx-core<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L46" class="line">    <span style="color: #000080">&lt;/dependency&gt;</span></span>
+<span id="L47" class="line">    <span style="color: #000080">&lt;dependency&gt;</span>   <b class="conum">(2)</b></span>
+<span id="L48" class="line">      <span style="color: #000080">&lt;groupId&gt;</span>io.vertx<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L49" class="line">      <span style="color: #000080">&lt;artifactId&gt;</span>vertx-web-client<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L50" class="line">    <span style="color: #000080">&lt;/dependency&gt;</span></span>
+<span id="L51" class="line">    <span style="color: #000080">&lt;dependency&gt;</span></span>
+<span id="L52" class="line">      <span style="color: #000080">&lt;groupId&gt;</span>io.vertx<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L53" class="line">      <span style="color: #000080">&lt;artifactId&gt;</span>vertx-unit<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L54" class="line">      <span style="color: #000080">&lt;scope&gt;</span>test<span style="color: #000080">&lt;/scope&gt;</span></span>
+<span id="L55" class="line">    <span style="color: #000080">&lt;/dependency&gt;</span></span>
+<span id="L56" class="line">    <span style="color: #000080">&lt;dependency&gt;</span></span>
+<span id="L57" class="line">      <span style="color: #000080">&lt;groupId&gt;</span>junit<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L58" class="line">      <span style="color: #000080">&lt;artifactId&gt;</span>junit<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L59" class="line">      <span style="color: #000080">&lt;version&gt;</span>4.12<span style="color: #000080">&lt;/version&gt;</span></span>
+<span id="L60" class="line">      <span style="color: #000080">&lt;scope&gt;</span>test<span style="color: #000080">&lt;/scope&gt;</span></span>
+<span id="L61" class="line">    <span style="color: #000080">&lt;/dependency&gt;</span></span>
+<span id="L62" class="line">  <span style="color: #000080">&lt;/dependencies&gt;</span></span>
+<span id="L63" class="line"></span>
+<span id="L64" class="line">  <span style="color: #000080">&lt;build&gt;</span></span>
+<span id="L65" class="line">    <span style="color: #000080">&lt;plugins&gt;</span> <b class="conum">(3)</b></span>
+<span id="L66" class="line">      <span style="color: #000080">&lt;plugin&gt;</span></span>
+<span id="L67" class="line">        <span style="color: #000080">&lt;groupId&gt;</span>org.apache.maven.plugins<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L68" class="line">        <span style="color: #000080">&lt;artifactId&gt;</span>maven-jar-plugin<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L69" class="line">        <span style="color: #000080">&lt;version&gt;</span>3.0.2<span style="color: #000080">&lt;/version&gt;</span></span>
+<span id="L70" class="line">        <span style="color: #000080">&lt;configuration&gt;</span></span>
+<span id="L71" class="line">          <span style="color: #000080">&lt;archive&gt;</span></span>
+<span id="L72" class="line">            <span style="color: #000080">&lt;manifest&gt;</span></span>
+<span id="L73" class="line">              <span style="color: #000080">&lt;mainClass&gt;</span>${vertx.verticle}<span style="color: #000080">&lt;/mainClass&gt;</span></span>
+<span id="L74" class="line">            <span style="color: #000080">&lt;/manifest&gt;</span></span>
+<span id="L75" class="line">          <span style="color: #000080">&lt;/archive&gt;</span></span>
+<span id="L76" class="line">        <span style="color: #000080">&lt;/configuration&gt;</span></span>
+<span id="L77" class="line">      <span style="color: #000080">&lt;/plugin&gt;</span></span>
+<span id="L78" class="line">      <span style="color: #000080">&lt;plugin&gt;</span></span>
+<span id="L79" class="line">        <span style="color: #000080">&lt;groupId&gt;</span>com.oracle.substratevm<span style="color: #000080">&lt;/groupId&gt;</span></span>
+<span id="L80" class="line">        <span style="color: #000080">&lt;artifactId&gt;</span>native-image-maven-plugin<span style="color: #000080">&lt;/artifactId&gt;</span></span>
+<span id="L81" class="line">        <span style="color: #000080">&lt;version&gt;</span>${graal.version}<span style="color: #000080">&lt;/version&gt;</span></span>
+<span id="L82" class="line">        <span style="color: #000080">&lt;executions&gt;</span></span>
+<span id="L83" class="line">          <span style="color: #000080">&lt;execution&gt;</span></span>
+<span id="L84" class="line">            <span style="color: #000080">&lt;goals&gt;</span></span>
+<span id="L85" class="line">              <span style="color: #000080">&lt;goal&gt;</span>native-image<span style="color: #000080">&lt;/goal&gt;</span></span>
+<span id="L86" class="line">            <span style="color: #000080">&lt;/goals&gt;</span></span>
+<span id="L87" class="line">            <span style="color: #000080">&lt;phase&gt;</span>package<span style="color: #000080">&lt;/phase&gt;</span></span>
+<span id="L88" class="line">          <span style="color: #000080">&lt;/execution&gt;</span></span>
+<span id="L89" class="line">        <span style="color: #000080">&lt;/executions&gt;</span></span>
+<span id="L90" class="line">      <span style="color: #000080">&lt;/plugin&gt;</span></span>
+<span id="L91" class="line">    <span style="color: #000080">&lt;/plugins&gt;</span></span>
+<span id="L92" class="line">  <span style="color: #000080">&lt;/build&gt;</span></span>
+<span id="L93" class="line"><span style="color: #000080">&lt;/project&gt;</span></span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>We need <code>svm-driver</code> to handle code incompatibilities with substrateVM.</p>
+</li>
+<li>
+<p>We need <code>vertx-webclient</code> to interact with the lambda environment.</p>
+</li>
+<li>
+<p>GraalVM configuration to produce an image.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="writing-the-function">Writing the function</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The function receives the incoming HTTP headers and the HTTP body.
+A random QOTD is selected.
+For each request, the random quote is sent:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java"><span id="L1" class="line"><span style="color: #999988;font-style: italic">/*</span></span>
+<span id="L2" class="line"><span style="color: #999988;font-style: italic"> * Copyright 2019 Paulo Lopes.</span></span>
+<span id="L3" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L4" class="line"><span style="color: #999988;font-style: italic"> *  All rights reserved. This program and the accompanying materials</span></span>
+<span id="L5" class="line"><span style="color: #999988;font-style: italic"> *  are made available under the terms of the Eclipse Public License v1.0</span></span>
+<span id="L6" class="line"><span style="color: #999988;font-style: italic"> *  and Apache License v2.0 which accompanies this distribution.</span></span>
+<span id="L7" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L8" class="line"><span style="color: #999988;font-style: italic"> *  The Eclipse Public License is available at</span></span>
+<span id="L9" class="line"><span style="color: #999988;font-style: italic"> *  http://www.eclipse.org/legal/epl-v10.html</span></span>
+<span id="L10" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L11" class="line"><span style="color: #999988;font-style: italic"> *  The Apache License v2.0 is available at</span></span>
+<span id="L12" class="line"><span style="color: #999988;font-style: italic"> *  http://www.opensource.org/licenses/apache2.0.php</span></span>
+<span id="L13" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L14" class="line"><span style="color: #999988;font-style: italic"> *  You may elect to redistribute this code under either of these licenses.</span></span>
+<span id="L15" class="line"><span style="color: #999988;font-style: italic"> */</span></span>
+<span id="L16" class="line"><span style="color: #000000;font-weight: bold">package</span> <span style="background-color: #f8f8f8">lambda</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L17" class="line"></span>
+<span id="L18" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.core.Future</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L19" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.core.MultiMap</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L20" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.core.Vertx</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L21" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.core.buffer.Buffer</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L22" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">vertx.lambda.Lambda</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L23" class="line"></span>
+<span id="L24" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">java.util.Random</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L25" class="line"></span>
+<span id="L26" class="line"><span style="color: #999988;font-style: italic">/**</span></span>
+<span id="L27" class="line"><span style="color: #999988;font-style: italic"> * A simple QOTD Lambda</span></span>
+<span id="L28" class="line"><span style="color: #999988;font-style: italic"> */</span></span>
+<span id="L29" class="line"><span style="color: #000000;font-weight: bold">public</span> <span style="color: #000000;font-weight: bold">class</span> <span style="color: #445588;font-weight: bold">QOTDLambda</span> <span style="color: #000000;font-weight: bold">implements</span> <span style="background-color: #f8f8f8">Lambda</span> <span style="color: #000000;font-weight: bold">{</span></span>
+<span id="L30" class="line"></span>
+<span id="L31" class="line">  <span style="color: #000000;font-weight: bold">private</span> <span style="color: #000000;font-weight: bold">static</span> <span style="color: #000000;font-weight: bold">final</span> <span style="background-color: #f8f8f8">Random</span> <span style="background-color: #f8f8f8">RANDOM</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">Random</span><span style="color: #000000;font-weight: bold">();</span></span>
+<span id="L32" class="line"></span>
+<span id="L33" class="line">  <span style="color: #000000;font-weight: bold">private</span> <span style="color: #000000;font-weight: bold">static</span> <span style="color: #000000;font-weight: bold">final</span> <span style="background-color: #f8f8f8">String</span><span style="color: #000000;font-weight: bold">[]</span> <span style="background-color: #f8f8f8">QUOTES</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #000000;font-weight: bold">{</span>    <b class="conum">(1)</b></span>
+<span id="L34" class="line">    <span style="color: #d14">"If you find a random command on the internet, try running it as root. What's the worse that could happen?"</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L35" class="line">    <span style="color: #d14">"Can root create a process that even root can't kill?"</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L36" class="line">    <span style="color: #d14">"There's no place like ~"</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L37" class="line">    <span style="color: #d14">"Thou shalt not kill -9."</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L38" class="line">    <span style="color: #d14">"The 'n' in unmount is missing, leaving it as umount! If you find it, please write to Bell Labs, 600 Mountain Avenue Murray Hill, NJ."</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L39" class="line">    <span style="color: #d14">"echo \"Just another useless use of cat.\" | cat"</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L40" class="line">    <span style="color: #d14">"`echo \"Just another useless use of backticks.\"`"</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L41" class="line">    <span style="color: #d14">"We've just created a special character device for handling complaints, conveniently located at /dev/null."</span><span style="color: #000000;font-weight: bold">,</span></span>
+<span id="L42" class="line">    <span style="color: #d14">"false - do nothing, unsuccessfully"</span></span>
+<span id="L43" class="line">  <span style="color: #000000;font-weight: bold">};</span></span>
+<span id="L44" class="line"></span>
+<span id="L45" class="line">  <span style="color: #3c5d5d;font-weight: bold">@Override</span></span>
+<span id="L46" class="line">  <span style="color: #000000;font-weight: bold">public</span></span>
+<span id="L47" class="line">  <span style="background-color: #f8f8f8">Future</span><span style="color: #000000;font-weight: bold">&lt;</span><span style="background-color: #f8f8f8">Buffer</span><span style="color: #000000;font-weight: bold">&gt;</span>  <b class="conum">(2)</b></span>
+<span id="L48" class="line">  <span style="color: #990000;font-weight: bold">call</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">Vertx</span> <span style="background-color: #f8f8f8">vertx</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">MultiMap</span> <span style="background-color: #f8f8f8">headers</span><span style="color: #000000;font-weight: bold">,</span> <span style="background-color: #f8f8f8">Buffer</span> <span style="background-color: #f8f8f8">body</span><span style="color: #000000;font-weight: bold">)</span> <span style="color: #000000;font-weight: bold">{</span>    <b class="conum">(3)</b></span>
+<span id="L49" class="line">    <span style="color: #999988;font-style: italic">// return a random qotd</span></span>
+<span id="L50" class="line">    <span style="color: #000000;font-weight: bold">return</span> <span style="background-color: #f8f8f8">Future</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">succeededFuture</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">Buffer</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">buffer</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">QUOTES</span><span style="color: #000000;font-weight: bold">[</span><span style="background-color: #f8f8f8">RANDOM</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">nextInt</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">QUOTES</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">length</span><span style="color: #000000;font-weight: bold">)]));</span>  <b class="conum">(4)</b></span>
+<span id="L51" class="line">  <span style="color: #000000;font-weight: bold">}</span></span>
+<span id="L52" class="line"><span style="color: #000000;font-weight: bold">}</span></span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>We declare a array of quotes.</p>
+</li>
+<li>
+<p>Implement the <code>Lambda</code> interface which returns a <code>Future</code> to allow asynchronous processing.</p>
+</li>
+<li>
+<p>The implementation receives the current <code>Vertx</code> instance and the request headers and body.</p>
+</li>
+<li>
+<p>For each request we return a resolved future with a random quote.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="testing-the-function">Testing the function</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-java" data-lang="java"><span id="L1" class="line"><span style="color: #999988;font-style: italic">/*</span></span>
+<span id="L2" class="line"><span style="color: #999988;font-style: italic"> * Copyright 2019 Paulo Lopes.</span></span>
+<span id="L3" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L4" class="line"><span style="color: #999988;font-style: italic"> *  All rights reserved. This program and the accompanying materials</span></span>
+<span id="L5" class="line"><span style="color: #999988;font-style: italic"> *  are made available under the terms of the Eclipse Public License v1.0</span></span>
+<span id="L6" class="line"><span style="color: #999988;font-style: italic"> *  and Apache License v2.0 which accompanies this distribution.</span></span>
+<span id="L7" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L8" class="line"><span style="color: #999988;font-style: italic"> *  The Eclipse Public License is available at</span></span>
+<span id="L9" class="line"><span style="color: #999988;font-style: italic"> *  http://www.eclipse.org/legal/epl-v10.html</span></span>
+<span id="L10" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L11" class="line"><span style="color: #999988;font-style: italic"> *  The Apache License v2.0 is available at</span></span>
+<span id="L12" class="line"><span style="color: #999988;font-style: italic"> *  http://www.opensource.org/licenses/apache2.0.php</span></span>
+<span id="L13" class="line"><span style="color: #999988;font-style: italic"> *</span></span>
+<span id="L14" class="line"><span style="color: #999988;font-style: italic"> *  You may elect to redistribute this code under either of these licenses.</span></span>
+<span id="L15" class="line"><span style="color: #999988;font-style: italic"> */</span></span>
+<span id="L16" class="line"><span style="color: #000000;font-weight: bold">package</span> <span style="background-color: #f8f8f8">lambda</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L17" class="line"></span>
+<span id="L18" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.core.Future</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L19" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.core.MultiMap</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L20" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.core.buffer.Buffer</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L21" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.ext.unit.Async</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L22" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.ext.unit.TestContext</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L23" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.ext.unit.junit.RunTestOnContext</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L24" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">io.vertx.ext.unit.junit.VertxUnitRunner</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L25" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">org.junit.Rule</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L26" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">org.junit.Test</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L27" class="line"><span style="color: #000000;font-weight: bold">import</span> <span style="color: #555555">org.junit.runner.RunWith</span><span style="color: #000000;font-weight: bold">;</span></span>
+<span id="L28" class="line"></span>
+<span id="L29" class="line"><span style="color: #3c5d5d;font-weight: bold">@RunWith</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">VertxUnitRunner</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">class</span><span style="color: #000000;font-weight: bold">)</span></span>
+<span id="L30" class="line"><span style="color: #000000;font-weight: bold">public</span> <span style="color: #000000;font-weight: bold">class</span> <span style="color: #445588;font-weight: bold">QOTDLambdaTest</span> <span style="color: #000000;font-weight: bold">{</span></span>
+<span id="L31" class="line"></span>
+<span id="L32" class="line">  <span style="color: #000000;font-weight: bold">private</span> <span style="color: #000000;font-weight: bold">final</span> <span style="background-color: #f8f8f8">QOTDLambda</span> <span style="background-color: #f8f8f8">fn</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">QOTDLambda</span><span style="color: #000000;font-weight: bold">();</span></span>
+<span id="L33" class="line"></span>
+<span id="L34" class="line">  <span style="color: #3c5d5d;font-weight: bold">@Rule</span></span>
+<span id="L35" class="line">  <span style="color: #000000;font-weight: bold">public</span> <span style="background-color: #f8f8f8">RunTestOnContext</span> <span style="background-color: #f8f8f8">rule</span> <span style="color: #000000;font-weight: bold">=</span> <span style="color: #000000;font-weight: bold">new</span> <span style="background-color: #f8f8f8">RunTestOnContext</span><span style="color: #000000;font-weight: bold">();</span></span>
+<span id="L36" class="line"></span>
+<span id="L37" class="line">  <span style="color: #3c5d5d;font-weight: bold">@Test</span></span>
+<span id="L38" class="line">  <span style="color: #000000;font-weight: bold">public</span> <span style="color: #445588;font-weight: bold">void</span> <span style="color: #990000;font-weight: bold">shouldGetAQOTD</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">TestContext</span> <span style="background-color: #f8f8f8">should</span><span style="color: #000000;font-weight: bold">)</span> <span style="color: #000000;font-weight: bold">{</span></span>
+<span id="L39" class="line">    <span style="color: #000000;font-weight: bold">final</span> <span style="background-color: #f8f8f8">Async</span> <span style="background-color: #f8f8f8">test</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">should</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">async</span><span style="color: #000000;font-weight: bold">();</span></span>
+<span id="L40" class="line"></span>
+<span id="L41" class="line">    <span style="background-color: #f8f8f8">Future</span><span style="color: #000000;font-weight: bold">&lt;</span><span style="background-color: #f8f8f8">Buffer</span><span style="color: #000000;font-weight: bold">&gt;</span> <span style="background-color: #f8f8f8">fut</span> <span style="color: #000000;font-weight: bold">=</span> <span style="background-color: #f8f8f8">fn</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">call</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">rule</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">vertx</span><span style="color: #000000;font-weight: bold">(),</span> <span style="background-color: #f8f8f8">MultiMap</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">caseInsensitiveMultiMap</span><span style="color: #000000;font-weight: bold">(),</span> <span style="color: #000000;font-weight: bold">null</span><span style="color: #000000;font-weight: bold">);</span>   <b class="conum">(1)</b></span>
+<span id="L42" class="line"></span>
+<span id="L43" class="line">    <span style="background-color: #f8f8f8">fut</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">setHandler</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">call</span> <span style="color: #000000;font-weight: bold">-&gt;</span> <span style="color: #000000;font-weight: bold">{</span></span>
+<span id="L44" class="line">      <span style="color: #000000;font-weight: bold">if</span> <span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">call</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">failed</span><span style="color: #000000;font-weight: bold">())</span> <span style="color: #000000;font-weight: bold">{</span></span>
+<span id="L45" class="line">        <span style="background-color: #f8f8f8">should</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">fail</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">call</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">cause</span><span style="color: #000000;font-weight: bold">());</span>  <b class="conum">(2)</b></span>
+<span id="L46" class="line">      <span style="color: #000000;font-weight: bold">}</span> <span style="color: #000000;font-weight: bold">else</span> <span style="color: #000000;font-weight: bold">{</span></span>
+<span id="L47" class="line">        <span style="background-color: #f8f8f8">should</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">assertNotNull</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">call</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">result</span><span style="color: #000000;font-weight: bold">());</span>  <b class="conum">(3)</b></span>
+<span id="L48" class="line">        <span style="background-color: #f8f8f8">should</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">assertTrue</span><span style="color: #000000;font-weight: bold">(</span><span style="background-color: #f8f8f8">call</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">result</span><span style="color: #000000;font-weight: bold">().</span><span style="color: #008080">length</span><span style="color: #000000;font-weight: bold">()</span> <span style="color: #000000;font-weight: bold">&gt;</span> <span style="color: #009999">0</span><span style="color: #000000;font-weight: bold">);</span></span>
+<span id="L49" class="line">        <span style="background-color: #f8f8f8">test</span><span style="color: #000000;font-weight: bold">.</span><span style="color: #008080">complete</span><span style="color: #000000;font-weight: bold">();</span>  <b class="conum">(4)</b></span>
+<span id="L50" class="line">      <span style="color: #000000;font-weight: bold">}</span></span>
+<span id="L51" class="line">    <span style="color: #000000;font-weight: bold">});</span></span>
+<span id="L52" class="line">  <span style="color: #000000;font-weight: bold">}</span></span>
+<span id="L53" class="line"></span>
+<span id="L54" class="line"><span style="color: #000000;font-weight: bold">}</span></span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<ol>
+<li>
+<p>Call the function with empty headers and body.</p>
+</li>
+<li>
+<p>Fail the test if the call fails.</p>
+</li>
+<li>
+<p>Verify that there&#8217;s a quote.</p>
+</li>
+<li>
+<p>Terminate the test.</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>We can easily test that the function works:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>from your IDE, run the <code>junit</code> test, or</p>
+</li>
+<li>
+<p>with Maven: <code>mvn compile test</code>.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="preparing-your-aws-dev-environment">Preparing your AWS dev environment</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TODO!</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="building-your-function">Building your function</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TODO!</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="deploying-the-function">Deploying the function</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TODO!</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="testing-the-function-2">Testing the function</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TODO!</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="summary">Summary</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p>We wrote a native function with Vert.x that returns a QOTD.</p>
+</li>
+<li>
+<p>We built a AWS lambda package.</p>
+</li>
+<li>
+<p>We deployed this function with AWS CLI.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="see-also">See also</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><a href="https://vertx.io/docs/vertx-web-client/java/">Vert.x web-client APIs</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <hr>
+        <p><small>Last published: 2019-03-06 09:40:16 +0000.</small></p>
+      </div>
+    </div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
