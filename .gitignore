@@ -1,0 +1,10 @@
+.idea/
+.gradle/
+.vertx/
+out/
+build/
+target/
+*.iml
+
+_site/
+.sass-cache/

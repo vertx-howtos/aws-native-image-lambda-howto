@@ -1,0 +1,96 @@
+= Deploying a Vert.x Native Image function with AWS Lambda
+:author: Paulo Lopes <pmlopes@gmail.com>
+:page-permalink: /
+:page-github: vertx-howtos/aws-native-image-lambda-howto
+
+This how-to shows you how to deploy a Vert.x-based native image _function_ served by https://aws.amazon.com/lambda/[AWS Lambda].
+
+== What you will build
+
+- You will write a function that accepts returns a Quote Of The Day (similar to the UNIX tool).
+- This function will be written in Java.
+- The code will be compiled to native with the help of http://www.graalvm.org/[GraalVM].
+- A function will be created with https://aws.amazon.com/cli/[AWS Command Line Interface].
+- This function will be deployed with https://aws.amazon.com/lambda/[AWS Lambda].
+
+== What you need
+
+- A text editor or IDE
+- Java 8 higher
+- Maven
+- GraalVM (>= 1.0.0-rc12)
+- A AWS account to deploy your function.
+
+== What is a AWS Lambda function and why is Vert.x a good match?
+
+TODO!
+
+== Create a project
+
+Here is the content of the `pom.xml` file that you should be using:
+
+[source,xml]
+----
+include::aws-lambda-vertx-runtime/pom.xml[]
+----
+<1> We need `svm-driver` to handle code incompatibilities with substrateVM.
+<2> We need `vertx-webclient` to interact with the lambda environment.
+<3> GraalVM configuration to produce an image.
+
+== Writing the function
+
+The function receives the incoming HTTP headers and the HTTP body.
+A random QOTD is selected.
+For each request, the random quote is sent:
+
+[source,java]
+----
+include::aws-lambda-vertx-runtime/src/main/java/lambda/QOTDLambda.java[]
+----
+<1> We declare a array of quotes.
+<2> Implement the `Lambda` interface which returns a `Future` to allow asynchronous processing.
+<3> The implementation receives the current `Vertx` instance and the request headers and body.
+<4> For each request we return a resolved future with a random quote.
+
+== Testing the function
+
+[source,java]
+----
+include::aws-lambda-vertx-runtime/src/test/java/lambda/QOTDLambdaTest.java[]
+----
+<1> Call the function with empty headers and body.
+<2> Fail the test if the call fails.
+<3> Verify that there's a quote.
+<4> Terminate the test.
+
+We can easily test that the function works:
+
+. from your IDE, run the `junit` test, or
+. with Maven: `mvn compile test`.
+
+
+== Preparing your AWS dev environment
+
+TODO!
+
+== Building your function
+
+TODO!
+
+== Deploying the function
+
+TODO!
+
+== Testing the function
+
+TODO!
+
+== Summary
+
+- We wrote a native function with Vert.x that returns a QOTD.
+- We built a AWS lambda package.
+- We deployed this function with AWS CLI.
+
+== See also
+
+- https://vertx.io/docs/vertx-web-client/java/[Vert.x web-client APIs]
