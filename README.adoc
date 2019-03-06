@@ -38,7 +38,9 @@ Enter Vert.x and GraalVM. Vert.x is ideal for writing functions on GraalVM nativ
 
 == Create a project
 
-Here is the content of the `pom.xml` file that you should be using:
+Start by cloning the following github project: https://github.com/pmlopes/aws-lambda-native-vertx
+
+After that let's walk over the important parts of the project. Here is the content of the `pom.xml` file that you should be using:
 
 [source,xml]
 ----
