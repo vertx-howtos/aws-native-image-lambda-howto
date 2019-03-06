@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>Deploying a Vert.x Native Image function with AWS Lambda | Eclipse Vert.x how-to</title>
+  <title>Deploying a Vert.x Native function with AWS Lambda | Eclipse Vert.x how-to</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr"
     crossorigin="anonymous">
@@ -39,7 +39,7 @@
   <div class="container">
     <div class="row">
       <div class="col">
-        <h1>Deploying a Vert.x Native Image function with AWS Lambda</h1>
+        <h1>Deploying a Vert.x Native function with AWS Lambda</h1>
         <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph">
@@ -80,13 +80,13 @@
 <p>A text editor or IDE</p>
 </li>
 <li>
-<p>Java 8 higher</p>
+<p>GraalVM (&gt;= 1.0.0-rc13)</p>
 </li>
 <li>
 <p>Maven</p>
 </li>
 <li>
-<p>GraalVM (&gt;= 1.0.0-rc12)</p>
+<p>AWS CLI tools</p>
 </li>
 <li>
 <p>A AWS account to deploy your function.</p>
@@ -99,7 +99,32 @@
 <h2 id="what-is-a-aws-lambda-function-and-why-is-vert-x-a-good-match">What is a AWS Lambda function and why is Vert.x a good match?</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>TODO!</p>
+<p>AWS Lambda is a service which takes care of computing your code without any knowledge on the server environment. It is said to be serverless compute. The code is executed based on the response of events in AWS services like adding /removing files in S3 bucket, updating Amazon DynamoDB tables, HTTP request from Amazon Api gateway etc.</p>
+</div>
+<div class="paragraph">
+<p>AWS Lambda code can be written in Java using the Amazon SDK. However due to the nature of the JVM and typical Java frameworks startup time can become a huge bottleneck to the performance of the function. To workaround this usually Java functions would be run on a Java server container, waiting for requests (defeating the whole serverless aspect).</p>
+</div>
+<div class="paragraph">
+<p>Enter Vert.x and GraalVM. Vert.x is ideal for writing functions on GraalVM native-images, because:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Vert.x applications start very fast since there is no magic happening at run time,</p>
+</li>
+<li>
+<p>GraalVM is used compilation to further reduce the startup and memory footprint,</p>
+</li>
+<li>
+<p>Vert.x applications are resource-efficient and remain responsive even under heavy load,</p>
+</li>
+<li>
+<p>Vert.x offers a large ecosystem of reactive clients to other middlewares (databases, messaging, etc),</p>
+</li>
+<li>
+<p>a single functional interface implementation suffices to bootstrap a Vert.x application!</p>
+</li>
+</ol>
 </div>
 </div>
 </div>
@@ -131,7 +156,7 @@
 <span id="L18" class="line">    <span style="color: #000080">&lt;maven.compiler.source&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.source&gt;</span></span>
 <span id="L19" class="line">    <span style="color: #000080">&lt;maven.compiler.testSource&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.testSource&gt;</span></span>
 <span id="L20" class="line">    <span style="color: #000080">&lt;maven.compiler.testTarget&gt;</span>1.8<span style="color: #000080">&lt;/maven.compiler.testTarget&gt;</span></span>
-<span id="L21" class="line">    <span style="color: #000080">&lt;graal.version&gt;</span>1.0.0-rc12<span style="color: #000080">&lt;/graal.version&gt;</span></span>
+<span id="L21" class="line">    <span style="color: #000080">&lt;graal.version&gt;</span>1.0.0-rc13<span style="color: #000080">&lt;/graal.version&gt;</span></span>
 <span id="L22" class="line">  <span style="color: #000080">&lt;/properties&gt;</span></span>
 <span id="L23" class="line"></span>
 <span id="L24" class="line">  <span style="color: #000080">&lt;dependencyManagement&gt;</span></span>
@@ -389,7 +414,7 @@ For each request, the random quote is sent:</p>
 <p>from your IDE, run the <code>junit</code> test, or</p>
 </li>
 <li>
-<p>with Maven: <code>mvn compile test</code>.</p>
+<p>with Maven: <code>mvn test</code>.</p>
 </li>
 </ol>
 </div>
@@ -398,8 +423,27 @@ For each request, the random quote is sent:</p>
 <div class="sect1">
 <h2 id="preparing-your-aws-dev-environment">Preparing your AWS dev environment</h2>
 <div class="sectionbody">
+<div class="sect2">
+<h3 id="create-a-lambda-role">Create a Lambda role</h3>
 <div class="paragraph">
-<p>TODO!</p>
+<p>Bofore being able to deploy to AWS you need to have a role capable of accessing the service. In order to do this create a temp json file (<code>/tmp/trust-policy.json</code>) with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-json" data-lang="json"></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And deploy it with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ aws iam create-role \
+    --role-name lambda-role \
+    --path "/service-role/" \
+    --assume-role-policy-document file:///tmp/trust-policy.json</pre>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -407,7 +451,34 @@ For each request, the random quote is sent:</p>
 <h2 id="building-your-function">Building your function</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>TODO!</p>
+<p>Building the function is running the usual maven command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ mvn clean package
+$ zip -r function.zip bootstrap target/lambda</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The final zip is the base layer used by the functions.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="deploying-the-runtime-layer">Deploying the runtime layer</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This layer will be installed on top of the Amazon Linux in the <code>/opt</code> directory.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ aws lambda publish-layer-version \
+    --layer-name vertx-native-example \
+    --zip-file fileb://function.zip</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will install the lambda entrypoint <code>/opt/bootstrap</code> and the native image ELF containing all the functions.</p>
 </div>
 </div>
 </div>
@@ -415,7 +486,26 @@ For each request, the random quote is sent:</p>
 <h2 id="deploying-the-function">Deploying the function</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>TODO!</p>
+<p>You will need to provide a function zip file, in our case this is not useful as all code lives in the base layer so we can upload "again" the same zip or upload an empty file.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ aws lambda create-function --function-name vertxNativeTester \
+    --zip-file fileb://function.zip --handler lambda.EchoLambda --runtime provided \
+    --role arn:aws:iam::&lt;YOUR-ARN&gt;:role/service-role/lambda-role</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This could be useful if your function requires file resources. In this case you could package the resources for each function on a separate zip file.</p>
+</div>
+<div class="paragraph">
+<p>Since the deployment was done with a custom runtime we need to link the 2:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ aws lambda update-function-configuration --function-name vertxNativeTester \
+    --layers arn:aws:lambda:eu-central-1:&lt;YOUR-ARN&gt;:layer:vertx-native-example:1</pre>
+</div>
 </div>
 </div>
 </div>
@@ -423,7 +513,14 @@ For each request, the random quote is sent:</p>
 <h2 id="testing-the-function-2">Testing the function</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>TODO!</p>
+<p>Congratulations you just published your first native function. In order to quickly test it use the toolkit:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>$ aws lambda invoke --function-name vertxNativeTester \
+    --payload '{"message":"Hello World"}' \
+    --log-type Tail response.txt | grep "LogResult" | awk -F'"' '{print $4}' | base64 --decode</pre>
+</div>
 </div>
 </div>
 </div>
@@ -462,7 +559,7 @@ For each request, the random quote is sent:</p>
     <div class="row">
       <div class="col">
         <hr>
-        <p><small>Last published: 2019-03-06 09:40:16 +0000.</small></p>
+        <p><small>Last published: 2019-03-06 20:01:03 +0000.</small></p>
       </div>
     </div>
   </div>
