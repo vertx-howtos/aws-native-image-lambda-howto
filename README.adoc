@@ -1,4 +1,4 @@
-= Deploying a Vert.x Native Image function with AWS Lambda
+= Deploying a Vert.x Native function with AWS Lambda
 :author: Paulo Lopes <pmlopes@gmail.com>
 :page-permalink: /
 :page-github: vertx-howtos/aws-native-image-lambda-howto
@@ -16,14 +16,25 @@ This how-to shows you how to deploy a Vert.x-based native image _function_ serve
 == What you need
 
 - A text editor or IDE
-- Java 8 higher
+- GraalVM (>= 1.0.0-rc13)
 - Maven
-- GraalVM (>= 1.0.0-rc12)
+- AWS CLI tools
 - A AWS account to deploy your function.
 
 == What is a AWS Lambda function and why is Vert.x a good match?
 
-TODO!
+AWS Lambda is a service which takes care of computing your code without any knowledge on the server environment. It is said to be serverless compute. The code is executed based on the response of events in AWS services like adding /removing files in S3 bucket, updating Amazon DynamoDB tables, HTTP request from Amazon Api gateway etc.
+
+AWS Lambda code can be written in Java using the Amazon SDK. However due to the nature of the JVM and typical Java frameworks startup time can become a huge bottleneck to the performance of the function. To workaround this usually Java functions would be run on a Java server container, waiting for requests (defeating the whole serverless aspect).
+
+Enter Vert.x and GraalVM. Vert.x is ideal for writing functions on GraalVM native-images, because:
+
+1. Vert.x applications start very fast since there is no magic happening at run time,
+2. GraalVM is used compilation to further reduce the startup and memory footprint,
+3. Vert.x applications are resource-efficient and remain responsive even under heavy load,
+4. Vert.x offers a large ecosystem of reactive clients to other middlewares (databases, messaging, etc),
+5. a single functional interface implementation suffices to bootstrap a Vert.x application!
+
 
 == Create a project
 
@@ -66,24 +77,81 @@ include::aws-lambda-vertx-runtime/src/test/java/lambda/QOTDLambdaTest.java[]
 We can easily test that the function works:
 
 . from your IDE, run the `junit` test, or
-. with Maven: `mvn compile test`.
+. with Maven: `mvn test`.
 
 
 == Preparing your AWS dev environment
 
-TODO!
+=== Create a Lambda role
+
+Bofore being able to deploy to AWS you need to have a role capable of accessing the service. In order to do this create a temp json file (`/tmp/trust-policy.json`) with:
+
+[source,json]
+----
+include::trust-policy.json[]
+----
+
+And deploy it with:
+
+----
+$ aws iam create-role \
+    --role-name lambda-role \
+    --path "/service-role/" \
+    --assume-role-policy-document file:///tmp/trust-policy.json
+----
+
 
 == Building your function
 
-TODO!
+Building the function is running the usual maven command:
+
+----
+$ mvn clean package
+$ zip -r function.zip bootstrap target/lambda
+----
+
+The final zip is the base layer used by the functions.
+
+== Deploying the runtime layer
+
+This layer will be installed on top of the Amazon Linux in the `/opt` directory.
+
+----
+$ aws lambda publish-layer-version \
+    --layer-name vertx-native-example \
+    --zip-file fileb://function.zip
+----
+
+This will install the lambda entrypoint `/opt/bootstrap` and the native image ELF containing all the functions.
 
 == Deploying the function
 
-TODO!
+You will need to provide a function zip file, in our case this is not useful as all code lives in the base layer so we can upload "again" the same zip or upload an empty file.
+
+----
+$ aws lambda create-function --function-name vertxNativeTester \
+    --zip-file fileb://function.zip --handler lambda.EchoLambda --runtime provided \
+    --role arn:aws:iam::<YOUR-ARN>:role/service-role/lambda-role
+----
+
+This could be useful if your function requires file resources. In this case you could package the resources for each function on a separate zip file.
+
+Since the deployment was done with a custom runtime we need to link the 2:
+
+----
+$ aws lambda update-function-configuration --function-name vertxNativeTester \
+    --layers arn:aws:lambda:eu-central-1:<YOUR-ARN>:layer:vertx-native-example:1
+----
 
 == Testing the function
 
-TODO!
+Congratulations you just published your first native function. In order to quickly test it use the toolkit:
+
+----
+$ aws lambda invoke --function-name vertxNativeTester \
+    --payload '{"message":"Hello World"}' \
+    --log-type Tail response.txt | grep "LogResult" | awk -F'"' '{print $4}' | base64 --decode
+----
 
 == Summary
 
