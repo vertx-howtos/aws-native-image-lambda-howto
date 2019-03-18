@@ -42,7 +42,7 @@ Start by cloning the following github project: https://github.com/pmlopes/aws-la
 
 After that let's walk over the important parts of the project. Here is the content of the `pom.xml` file that you should be using:
 
-[source,xml]
+[source,xml,role="collapsed"]
 ----
 include::aws-lambda-vertx-runtime/pom.xml[]
 ----
