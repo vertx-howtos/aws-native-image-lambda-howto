@@ -137,7 +137,7 @@
 <div class="paragraph">
 <p>After that let&#8217;s walk over the important parts of the project. Here is the content of the <code>pom.xml</code> file that you should be using:</p>
 </div>
-<div class="listingblock">
+<div class="listingblock collapsed">
 <div class="content">
 <pre class="highlight"><code class="language-xml" data-lang="xml"><span id="L1" class="line"><span style="color: #999999;font-weight: bold">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span></span>
 <span id="L2" class="line"><span style="color: #000080">&lt;project</span> <span style="color: #008080">xmlns=</span><span style="color: #d14">"http://maven.apache.org/POM/4.0.0"</span></span>
@@ -562,10 +562,28 @@ $ zip -r function.zip bootstrap target/lambda</pre>
     <div class="row">
       <div class="col">
         <hr>
-        <p><small>Last published: 2019-03-06 20:04:43 +0000.</small></p>
+        <p><small>Last published: 2019-03-25 09:03:30 +0000.</small></p>
       </div>
     </div>
   </div>
+
+  <script>
+    (function () {
+      const blocks = document.getElementsByClassName("collapsed");
+      for (let i = 0; i < blocks.length; i++) {
+        const block = blocks[i];
+        const blockWrapper = document.createElement("div");
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.innerHTML = "Details <em>(click to expand)</em>";
+        details.appendChild(summary);
+        details.appendChild(blockWrapper);
+        block.parentNode.insertBefore(details, block);
+        blockWrapper.appendChild(block);
+      }
+    })();
+  </script>
+
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
     crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"

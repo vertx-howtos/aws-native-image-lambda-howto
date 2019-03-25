@@ -7521,3 +7521,6 @@ pre {
         content: ' / '; }
   .admonitionblock td.content p {
     margin: 0; }
+
+details {
+  margin-bottom: 1em; }
