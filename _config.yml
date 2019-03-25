@@ -1,5 +1,7 @@
 theme: vertx-howtos-jekyll-theme
 
+url: https://vertx-howtos.github.io/aws-native-image-lambda-howto/
+
 asciidoctor:
   attributes:
     source-highlighter: rouge
