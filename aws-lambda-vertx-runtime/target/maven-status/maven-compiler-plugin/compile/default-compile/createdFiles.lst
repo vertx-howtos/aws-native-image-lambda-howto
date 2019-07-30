@@ -6,5 +6,5 @@ TargetUnsafeRefArrayAccess.class
 TargetCleanerJava6.class
 lambda/QOTDLambda.class
 TargetResolverProvider.class
-vertx/lambda/LambdaBootstrap.class
 vertx/lambda/Lambda.class
+vertx/lambda/LambdaBootstrap.class
